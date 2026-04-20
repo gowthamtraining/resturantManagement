@@ -5,12 +5,12 @@ const Layout = ({ children }) => {
   return (
     <>
       <Navbar />
-      <main className="container" style={{ minHeight: 'calc(100vh - 160px)' }}>
+      <main style={{ minHeight: 'calc(100vh - 72px)' }}>
         {children}
       </main>
       <footer className="footer">
         <div className="container">
-          <p>&copy; 2026 Royal Kitchen. All rights reserved.</p>
+          <p style={{ fontSize: '0.85rem' }}>© 2026 Royal Kitchen · Built with ❤️ for great food</p>
         </div>
       </footer>
     </>

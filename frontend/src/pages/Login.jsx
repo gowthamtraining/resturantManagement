@@ -11,11 +11,9 @@ const Login = () => {
 
   useEffect(() => {
     if (user) {
-      if (user.role === 'admin' || user.role === 'staff') {
-        navigate('/admin');
-      } else {
-        navigate('/menu');
-      }
+      if (user.role === 'admin') navigate('/admin');
+      else if (user.role === 'staff') navigate('/restaurant-portal');
+      else navigate('/restaurants');
     }
   }, [user, navigate]);
 
@@ -26,36 +24,26 @@ const Login = () => {
 
   return (
     <div className="auth-page animate-fade-in">
-      <div className="auth-card card glass">
+      <div className="auth-card">
         <h2>Welcome <span>Back</span></h2>
         <p>Login to your account to start ordering.</p>
-        
+
         {error && <div className="error-msg">{error}</div>}
-        
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>Email Address</label>
-            <input 
-              type="email" 
-              placeholder="Enter email" 
-              value={email} 
-              onChange={(e) => setEmail(e.target.value)} 
-              required 
-            />
+            <input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} required autoFocus />
           </div>
           <div className="form-group">
             <label>Password</label>
-            <input 
-              type="password" 
-              placeholder="Enter password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
-            />
+            <input type="password" placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required />
           </div>
-          <button type="submit" className="btn btn-primary btn-block">Login Now</button>
+          <button type="submit" className="btn btn-primary btn-block" style={{ marginTop: '0.5rem', fontSize: '1rem', padding: '0.85rem' }}>
+            Login Now →
+          </button>
         </form>
-        
+
         <div className="auth-footer">
           Don't have an account? <Link to="/register">Create one</Link>
         </div>

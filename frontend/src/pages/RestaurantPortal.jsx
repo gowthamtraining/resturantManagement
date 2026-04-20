@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import './AdminDashboard.css'; // Reusing dashboard styles
+import { useToast } from '../context/ToastContext';
+import './AdminDashboard.css';
 
 const RestaurantPortal = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { addToast } = useToast();
+
   const [restaurants, setRestaurants] = useState([]);
   const [unowned, setUnowned] = useState([]);
   const [selectedRest, setSelectedRest] = useState(null);
@@ -13,94 +17,58 @@ const RestaurantPortal = () => {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [activeTab, setActiveTab] = useState('menu');
-  const [newItem, setNewItem] = useState({
-    name: '',
-    price: '',
-    description: '',
-    category: '',
-    countInStock: '',
-    image: ''
-  });
-
-  const [restaurantForm, setRestaurantForm] = useState({
-    name: '',
-    description: '',
-    address: ''
-  });
+  const [newItem, setNewItem] = useState({ name: '', price: '', description: '', category: '', countInStock: '', image: '' });
+  const [restaurantForm, setRestaurantForm] = useState({ name: '', description: '', address: '' });
 
   const fetchMyRestaurants = async () => {
     try {
-      const [{ data: myData }, { data: unownedData }] = await Promise.all([
+      const [myRes, unownedRes] = await Promise.allSettled([
         api.get('/restaurants/myrestaurants'),
-        api.get('/restaurants/unowned')
+        api.get('/restaurants/unowned'),
       ]);
-      
+      const myData = myRes.status === 'fulfilled' ? myRes.value.data : [];
+      const unownedData = unownedRes.status === 'fulfilled' ? unownedRes.value.data : [];
       setRestaurants(myData);
       setUnowned(unownedData);
-      
-      // Auto-select first one or from URL
-      const urlRestId = new URLSearchParams(location.search).get('restId');
+
+      const urlParams = new URLSearchParams(location.search);
+      const urlRestId = urlParams.get('restId');
       if (urlRestId) {
         const found = myData.find(r => r._id === urlRestId);
         if (found) setSelectedRest(found);
       } else if (myData.length > 0) {
         setSelectedRest(myData[0]);
       }
-      
-      if (new URLSearchParams(location.search).get('add') === 'true') {
-        setShowAddForm(true);
-      }
-      
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching restaurants:', error);
+      if (urlParams.get('add') === 'true') setShowAddForm(true);
+    } catch (err) {
+      console.error(err);
+    } finally {
       setLoading(false);
     }
   };
+
+  const fetchRestaurantData = async (restId) => {
+    try {
+      const [menuRes, ordersRes] = await Promise.allSettled([
+        api.get(`/menu?restaurantId=${restId}`),
+        api.get(`/orders?restaurantId=${restId}`),
+      ]);
+      if (menuRes.status === 'fulfilled') setMenuItems(menuRes.value.data);
+      if (ordersRes.status === 'fulfilled') setOrders(ordersRes.value.data);
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => { fetchMyRestaurants(); }, []);
+  useEffect(() => { if (selectedRest) fetchRestaurantData(selectedRest._id); }, [selectedRest]);
 
   const handleClaim = async (id) => {
     try {
       const { data } = await api.put(`/restaurants/${id}/claim`);
-      setRestaurants([...restaurants, data]);
+      setRestaurants(prev => [...prev, data]);
       setSelectedRest(data);
-      setUnowned(unowned.filter(r => r._id !== id));
-    } catch (error) {
-      alert('Error claiming restaurant');
-    }
-  };
-
-  useEffect(() => {
-    fetchMyRestaurants();
-  }, []);
-
-  useEffect(() => {
-    if (selectedRest) {
-      const fetchRestDetails = async () => {
-        try {
-          const [menuRes, orderRes] = await Promise.all([
-            api.get(`/menu?restaurantId=${selectedRest._id}`),
-            api.get(`/orders/restaurant/${selectedRest._id}`)
-          ]);
-          setMenuItems(menuRes.data);
-          setOrders(orderRes.data);
-        } catch (error) {
-          console.error('Error fetching details:', error);
-        }
-      };
-      fetchRestDetails();
-    }
-  }, [selectedRest]);
-
-  const handleAddItem = async (e) => {
-    e.preventDefault();
-    try {
-      const { data } = await api.post('/menu', { ...newItem, restaurantId: selectedRest._id });
-      setMenuItems([...menuItems, data]);
-      setShowAddForm(false);
-      setNewItem({ name: '', price: '', description: '', category: '', countInStock: '', image: '' });
-    } catch (error) {
-      alert(error.response?.data?.message || 'Error adding item');
-    }
+      setUnowned(prev => prev.filter(r => r._id !== id));
+      addToast('Restaurant linked to your account! 🎉', 'success');
+    } catch {}
   };
 
   const handleCreateRestaurant = async (e) => {
@@ -108,193 +76,233 @@ const RestaurantPortal = () => {
     try {
       const { data } = await api.post('/restaurants', {
         ...restaurantForm,
-        image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?auto=format&fit=crop&w=800&q=80'
+        image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=800&q=80',
       });
-      setRestaurants([...restaurants, data]);
+      setRestaurants(prev => [...prev, data]);
       setSelectedRest(data);
       setRestaurantForm({ name: '', description: '', address: '' });
-    } catch (error) {
-      alert('Error creating restaurant');
-    }
+      addToast('Restaurant created! 🚀', 'success');
+    } catch {}
   };
 
-  if (loading) return <div className="loader">Loading Your Portal...</div>;
+  const handleAddItem = async (e) => {
+    e.preventDefault();
+    try {
+      const { data } = await api.post('/menu', { ...newItem, restaurantId: selectedRest._id });
+      setMenuItems(prev => [...prev, data]);
+      setNewItem({ name: '', price: '', description: '', category: '', countInStock: '', image: '' });
+      setShowAddForm(false);
+      addToast(`"${data.name}" added to menu! ✅`, 'success');
+    } catch {}
+  };
+
+  if (loading) return <div className="loading">Loading Portal...</div>;
 
   return (
     <div className="admin-dashboard">
-      <div className="sidebar" style={{ width: '280px', background: 'var(--surface)', borderRight: '1px solid var(--border-color)', padding: '2rem 1rem' }}>
-        <h2 style={{ marginBottom: '2rem' }}>My Restaurants</h2>
-        <div className="rest-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      {/* ─── Sidebar ─── */}
+      <aside className="sidebar">
+        <h2>My Restaurants</h2>
+        <div id="rest-list">
           {restaurants.map(r => (
-            <div 
-              key={r._id} 
+            <div
+              key={r._id}
               className={`rest-nav-item ${selectedRest?._id === r._id ? 'active' : ''}`}
-              onClick={() => { setSelectedRest(r); setShowAddForm(false); }}
-              style={{
-                padding: '1rem',
-                borderRadius: '0.5rem',
-                cursor: 'pointer',
-                background: selectedRest?._id === r._id ? 'var(--primary)' : 'transparent',
-                color: selectedRest?._id === r._id ? 'white' : 'var(--text-primary)',
-                transition: '0.3s'
-              }}
+              onClick={() => setSelectedRest(r)}
             >
-              {r.name}
+              🍽️ {r.name}
             </div>
           ))}
-          <button 
-            className="btn btn-outline" 
-            onClick={() => setSelectedRest(null)}
-            style={{ marginTop: '1rem', width: '100%' }}
-          >
-            + New Restaurant
-          </button>
         </div>
-      </div>
+        <button
+          className="btn btn-outline btn-sm"
+          style={{ width: '100%', marginTop: '1.5rem' }}
+          onClick={() => setSelectedRest(null)}
+        >
+          + New Restaurant
+        </button>
+      </aside>
 
-      <div className="main-content" style={{ flex: 1, padding: '2rem' }}>
+      {/* ─── Main Content ─── */}
+      <div className="main-content">
         {!selectedRest ? (
-          <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
-             {unowned.length > 0 && (
-               <div className="card" style={{ padding: '2rem', marginBottom: '2rem', background: 'var(--primary-subtle)' }}>
-                 <h2 style={{ color: 'var(--primary)' }}>Claim Your Restaurant</h2>
-                 <p style={{ marginBottom: '1.5rem' }}>We found some restaurants that don't have an assigned owner. Is one of these yours?</p>
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                    {unowned.map(r => (
-                      <div key={r._id} className="card" style={{ padding: '1rem', textAlign: 'center' }}>
-                         <h4 style={{ marginBottom: '0.5rem' }}>{r.name}</h4>
-                         <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>{r.address}</p>
-                         <button className="btn btn-primary btn-sm" onClick={() => handleClaim(r._id)}>🙋‍♂️ This Is Mine</button>
-                      </div>
-                    ))}
-                 </div>
-               </div>
-             )}
-
-             <div className="card" style={{ padding: '2rem' }}>
-                <h2>Create New Restaurant</h2>
-                <form onSubmit={handleCreateRestaurant} className="grid-form" style={{ marginTop: '1rem' }}>
-                  <div className="form-group full-width">
-                    <label>Restaurant Name</label>
-                    <input type="text" required value={restaurantForm.name} onChange={e => setRestaurantForm({...restaurantForm, name: e.target.value})} />
-                  </div>
-                  <div className="form-group full-width">
-                    <label>Address</label>
-                    <input type="text" required value={restaurantForm.address} onChange={e => setRestaurantForm({...restaurantForm, address: e.target.value})} />
-                  </div>
-                  <div className="form-group full-width">
-                    <label>Description</label>
-                    <textarea required value={restaurantForm.description} onChange={e => setRestaurantForm({...restaurantForm, description: e.target.value})} />
-                  </div>
-                  <button type="submit" className="btn btn-primary btn-block">Add Restaurant 🚀</button>
-                </form>
-             </div>
-          </div>
-        ) : (
-          <div className="dashboard-view">
-            <div className="dashboard-header" style={{ marginBottom: '2rem' }}>
-              <div>
-                <h1>{selectedRest.name} Dashboard</h1>
-                <p>{selectedRest.address}</p>
-              </div>
-              <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
-                {showAddForm ? 'Cancel' : '+ Add Item'}
-              </button>
-            </div>
-
-            {showAddForm && (
-              <div className="card animate-slide-down" style={{ marginBottom: '2rem', padding: '2rem' }}>
-                <h3>Add New Dish to {selectedRest.name}</h3>
-                <form onSubmit={handleAddItem} className="grid-form">
-                  <div className="form-group">
-                    <label>Name</label>
-                    <input type="text" required value={newItem.name} onChange={e => setNewItem({...newItem, name: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label>Price ($)</label>
-                    <input type="number" step="0.01" required value={newItem.price} onChange={e => setNewItem({...newItem, price: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label>Category</label>
-                    <input type="text" required value={newItem.category} onChange={e => setNewItem({...newItem, category: e.target.value})} />
-                  </div>
-                  <div className="form-group">
-                    <label>Stock</label>
-                    <input type="number" required value={newItem.countInStock} onChange={e => setNewItem({...newItem, countInStock: e.target.value})} />
-                  </div>
-                  <div className="form-group full-width">
-                    <label>Description</label>
-                    <textarea required value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} />
-                  </div>
-                  <button type="submit" className="btn btn-primary">Save Menu Item</button>
-                </form>
+          <div className="animate-fade-in" style={{ maxWidth: '720px' }}>
+            {/* Claim unowned */}
+            {unowned.length > 0 && (
+              <div className="section-card" style={{ marginBottom: '2rem', borderColor: 'rgba(245,158,11,0.3)' }}>
+                <div className="section-card-header">
+                  <h2>🙋 Claim Your Restaurant</h2>
+                </div>
+                <div style={{ padding: '1.25rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                  {unowned.map(r => (
+                    <div key={r._id} className="card" style={{ textAlign: 'center', transition: 'all 0.2s', cursor: 'default' }}>
+                      <h4 style={{ marginBottom: '0.3rem' }}>{r.name}</h4>
+                      <p style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: '1rem' }}>{r.address}</p>
+                      <button className="btn btn-primary btn-sm" onClick={() => handleClaim(r._id)}>This Is Mine</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div className="stats-grid">
+            <div className="section-card">
+              <div className="section-card-header"><h2>Create New Restaurant</h2></div>
+              <div style={{ padding: '1.5rem' }}>
+                <form onSubmit={handleCreateRestaurant} className="grid-form">
+                  <div className="form-group full-width">
+                    <label>Restaurant Name</label>
+                    <input required value={restaurantForm.name} onChange={e => setRestaurantForm({ ...restaurantForm, name: e.target.value })} placeholder="e.g. The Golden Fork" />
+                  </div>
+                  <div className="form-group full-width">
+                    <label>Address</label>
+                    <input required value={restaurantForm.address} onChange={e => setRestaurantForm({ ...restaurantForm, address: e.target.value })} placeholder="123 Main Street, City" />
+                  </div>
+                  <div className="form-group full-width">
+                    <label>Description</label>
+                    <textarea rows={3} required value={restaurantForm.description} onChange={e => setRestaurantForm({ ...restaurantForm, description: e.target.value })} placeholder="What makes your restaurant special?" />
+                  </div>
+                  <button type="submit" className="btn btn-primary btn-block">🚀 Launch Restaurant</button>
+                </form>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="animate-fade-in">
+            {/* Header */}
+            <div className="dashboard-header">
+              <div>
+                <h1>{selectedRest.name} <span>Dashboard</span></h1>
+                <p>📍 {selectedRest.address}</p>
+              </div>
+              <button className="btn btn-primary" onClick={() => setShowAddForm(!showAddForm)}>
+                {showAddForm ? '✕ Cancel' : '+ Add Menu Item'}
+              </button>
+            </div>
+
+            {/* Add Item Form */}
+            {showAddForm && (
+              <div className="section-card animate-slide-down" style={{ marginBottom: '2rem' }}>
+                <div className="section-card-header"><h2>Add New Dish to {selectedRest.name}</h2></div>
+                <div style={{ padding: '1.5rem' }}>
+                  <form onSubmit={handleAddItem} className="grid-form">
+                    <div className="form-group">
+                      <label>Dish Name</label>
+                      <input required value={newItem.name} onChange={e => setNewItem({ ...newItem, name: e.target.value })} placeholder="e.g. Wagyu Burger" />
+                    </div>
+                    <div className="form-group">
+                      <label>Price ($)</label>
+                      <input type="number" step="0.01" min="0" required value={newItem.price} onChange={e => setNewItem({ ...newItem, price: e.target.value })} placeholder="9.99" />
+                    </div>
+                    <div className="form-group">
+                      <label>Category</label>
+                      <input required value={newItem.category} onChange={e => setNewItem({ ...newItem, category: e.target.value })} placeholder="e.g. Burgers" />
+                    </div>
+                    <div className="form-group">
+                      <label>Stock Count</label>
+                      <input type="number" min="0" required value={newItem.countInStock} onChange={e => setNewItem({ ...newItem, countInStock: e.target.value })} placeholder="10" />
+                    </div>
+                    <div className="form-group full-width">
+                      <label>Description</label>
+                      <textarea rows={2} required value={newItem.description} onChange={e => setNewItem({ ...newItem, description: e.target.value })} placeholder="Describe this delicious dish..." />
+                    </div>
+                    <div className="form-group full-width">
+                      <label>Image URL (optional)</label>
+                      <input value={newItem.image} onChange={e => setNewItem({ ...newItem, image: e.target.value })} placeholder="https://..." />
+                    </div>
+                    <button type="submit" className="btn btn-primary btn-block">✅ Save Menu Item</button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Stats */}
+            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
               <div className="stat-card" onClick={() => setActiveTab('menu')}>
+                <div className="stat-icon">🍴</div>
                 <span>Menu Items</span>
                 <h3>{menuItems.length}</h3>
               </div>
               <div className="stat-card" onClick={() => setActiveTab('orders')}>
+                <div className="stat-icon">📦</div>
                 <span>Live Orders</span>
                 <h3>{orders.length}</h3>
               </div>
               <div className="stat-card">
+                <div className="stat-icon">⭐</div>
                 <span>Rating</span>
-                <h3>{selectedRest.rating} ⭐</h3>
+                <h3>{selectedRest.rating || '—'}</h3>
               </div>
             </div>
 
-            <div className="portal-tabs" style={{ marginBottom: '2rem', marginTop: '2rem', display: 'flex', gap: '1rem' }}>
-              <button className={`btn ${activeTab === 'menu' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('menu')}>Menu</button>
-              <button className={`btn ${activeTab === 'orders' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('orders')}>Orders</button>
+            {/* Tabs */}
+            <div className="tabs">
+              <button className={`btn ${activeTab === 'menu' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('menu')}>🍴 Menu</button>
+              <button className={`btn ${activeTab === 'orders' ? 'btn-primary' : 'btn-outline'}`} onClick={() => setActiveTab('orders')}>📦 Orders</button>
             </div>
 
-            {activeTab === 'menu' ? (
+            {/* Menu Tab */}
+            {activeTab === 'menu' && (
               <div className="inventory-section animate-fade-in">
-                <table className="admin-table">
-                  <thead>
-                    <tr><th>Name</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr>
-                  </thead>
-                  <tbody>
-                    {menuItems.map(item => (
-                      <tr key={item._id}>
-                        <td>{item.name}</td>
-                        <td><span className="badge-category">{item.category}</span></td>
-                        <td>${item.price.toFixed(2)}</td>
-                        <td><span className={`stock-level ${item.countInStock > 5 ? 'high' : 'low'}`}>{item.countInStock}</span></td>
-                        <td>
-                          <button className="btn-icon delete" onClick={async () => {
-                             if(window.confirm('Delete?')) {
-                               await api.delete(`/menu/${item._id}`);
-                               setMenuItems(menuItems.filter(i => i._id !== item._id));
-                             }
-                          }}>🗑️</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {menuItems.length === 0 ? (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <p style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🍽️</p>
+                    <h3 style={{ marginBottom: '0.5rem' }}>No dishes yet</h3>
+                    <p>Click "+ Add Menu Item" to get started!</p>
+                  </div>
+                ) : (
+                  <table className="admin-table">
+                    <thead><tr><th>Dish</th><th>Category</th><th>Price</th><th>Stock</th><th>Actions</th></tr></thead>
+                    <tbody>
+                      {menuItems.map(item => (
+                        <tr key={item._id}>
+                          <td>{item.name}</td>
+                          <td><span className="badge-category">{item.category}</span></td>
+                          <td style={{ color: 'var(--primary)', fontWeight: 700 }}>${item.price.toFixed(2)}</td>
+                          <td>
+                            <span className={`stock-level ${item.countInStock > 5 ? 'high' : 'low'}`}>{item.countInStock}</span>
+                          </td>
+                          <td>
+                            <button className="btn-icon delete" title="Delete" onClick={async () => {
+                              if (window.confirm(`Delete "${item.name}"?`)) {
+                                await api.delete(`/menu/${item._id}`);
+                                setMenuItems(prev => prev.filter(i => i._id !== item._id));
+                                addToast(`"${item.name}" removed.`, 'info');
+                              }
+                            }}>🗑️</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
-            ) : (
+            )}
+
+            {/* Orders Tab */}
+            {activeTab === 'orders' && (
               <div className="orders-section animate-fade-in">
-                <table className="admin-table">
-                  <thead>
-                    <tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr>
-                  </thead>
-                  <tbody>
-                    {orders.map(order => (
-                      <tr key={order._id}>
-                        <td>#{order._id.substring(19)}</td>
-                        <td>{order.user?.name}</td>
-                        <td>${order.totalPrice.toFixed(2)}</td>
-                        <td><span className={`badge status-${order.status}`}>{order.status}</span></td>
-                        <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {orders.length === 0 ? (
+                  <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <p style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📦</p>
+                    <h3>No orders yet</h3>
+                    <p>Orders will appear here once customers start placing them.</p>
+                  </div>
+                ) : (
+                  <table className="admin-table">
+                    <thead><tr><th>Order ID</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+                    <tbody>
+                      {orders.map(order => (
+                        <tr key={order._id}>
+                          <td>#{order._id.slice(-8)}</td>
+                          <td>{order.user?.name || '—'}</td>
+                          <td style={{ color: 'var(--primary)', fontWeight: 700 }}>${order.totalPrice?.toFixed(2)}</td>
+                          <td><span className={`badge status-${order.status}`}>{order.status}</span></td>
+                          <td style={{ fontSize: '0.82rem', color: 'var(--text-dim)' }}>{new Date(order.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             )}
           </div>

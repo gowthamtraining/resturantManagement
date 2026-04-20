@@ -11,14 +11,12 @@ import OrderHistory from './pages/OrderHistory';
 import AdminDashboard from './pages/AdminDashboard';
 import Inventory from './pages/Inventory';
 import AdminOrders from './pages/AdminOrders';
+import RestaurantList from './pages/RestaurantList';
+import RestaurantPortal from './pages/RestaurantPortal';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
 import { ToastProvider } from './context/ToastContext';
 import ToastInterceptor from './context/ToastInterceptor';
-import './context/Toast.css';
-
-import RestaurantList from './pages/RestaurantList';
-import RestaurantPortal from './pages/RestaurantPortal';
 
 function App() {
   return (
@@ -28,87 +26,24 @@ function App() {
           <AuthProvider>
             <CartProvider>
               <Layout>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route
-                path="/restaurants"
-                element={
-                  <ProtectedRoute>
-                    <RestaurantList />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/restaurant/:id"
-                element={
-                  <ProtectedRoute>
-                    <Menu />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/menu"
-                element={
-                  <ProtectedRoute>
-                    <Menu />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/cart"
-                element={
-                  <ProtectedRoute>
-                    <Cart />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/orders"
-                element={
-                  <ProtectedRoute>
-                    <OrderHistory />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/restaurant-portal"
-                element={
-                  <ProtectedRoute>
-                    <RestaurantPortal />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute adminOnly={true}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/inventory"
-                element={
-                  <ProtectedRoute adminOnly={true}>
-                    <Inventory />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/orders"
-                element={
-                  <ProtectedRoute adminOnly={true}>
-                    <AdminOrders />
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
-          </Layout>
-        </CartProvider>
-      </AuthProvider>
-      </ToastInterceptor>
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/restaurants" element={<ProtectedRoute><RestaurantList /></ProtectedRoute>} />
+                  <Route path="/restaurant/:id" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+                  <Route path="/menu" element={<ProtectedRoute><Menu /></ProtectedRoute>} />
+                  <Route path="/cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+                  <Route path="/orders" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
+                  <Route path="/restaurant-portal" element={<ProtectedRoute><RestaurantPortal /></ProtectedRoute>} />
+                  <Route path="/admin" element={<ProtectedRoute adminOnly={true}><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/admin/inventory" element={<ProtectedRoute adminOnly={true}><Inventory /></ProtectedRoute>} />
+                  <Route path="/admin/orders" element={<ProtectedRoute adminOnly={true}><AdminOrders /></ProtectedRoute>} />
+                </Routes>
+              </Layout>
+            </CartProvider>
+          </AuthProvider>
+        </ToastInterceptor>
       </ToastProvider>
     </Router>
   );

@@ -1,114 +1,101 @@
+/* ─── RESTAURANT LIST ─── */
 .restaurant-list-page {
-  padding: 2rem 0;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 6rem;
 }
 
 .section-header {
-  margin-bottom: 3rem;
   text-align: center;
+  margin-bottom: 3rem;
 }
-
 .section-header h2 {
-  font-size: 2.5rem;
+  font-size: clamp(1.8rem, 4vw, 2.8rem);
   font-weight: 800;
+  letter-spacing: -0.02em;
   margin-bottom: 0.5rem;
 }
-
-.section-header p {
-  color: var(--text-muted);
-  font-size: 1.1rem;
-}
+.section-header h2 span { color: var(--primary); }
+.section-header p { color: var(--text-muted); font-size: 1rem; }
 
 .restaurant-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 2rem;
+  gap: 1.75rem;
 }
 
 .restaurant-card {
-  background: var(--surface);
+  display: block;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
-  text-decoration: none;
-  color: inherit;
-  border: 1px solid var(--border);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  display: flex;
-  flex-direction: column;
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
 }
-
 .restaurant-card:hover {
   transform: translateY(-8px);
-  box-shadow: var(--shadow-xl);
   border-color: var(--primary);
+  box-shadow: 0 20px 60px rgba(245,158,11,0.15);
 }
 
 .card-image-wrap {
   position: relative;
-  height: 200px;
+  width: 100%;
+  aspect-ratio: 16/9;
   overflow: hidden;
 }
-
 .card-image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.5s;
+  transition: transform 0.5s ease;
 }
-
-.restaurant-card:hover .card-image-wrap img {
-  transform: scale(1.1);
-}
+.restaurant-card:hover .card-image-wrap img { transform: scale(1.08); }
 
 .card-badge {
   position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(4px);
-  color: white;
-  padding: 0.4rem 0.8rem;
-  border-radius: 50px;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: rgba(0,0,0,0.75);
+  backdrop-filter: blur(8px);
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
   font-weight: 700;
-  font-size: 0.85rem;
+  color: var(--primary);
+  border: 1px solid rgba(245,158,11,0.3);
 }
 
-.card-content {
-  padding: 1.5rem;
-  flex-grow: 1;
-}
-
+.card-content { padding: 1.5rem; }
 .card-content h3 {
-  font-size: 1.4rem;
-  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
+  margin-bottom: 0.4rem;
 }
-
-.description {
+.card-content .description {
+  font-size: 0.88rem;
   color: var(--text-muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.6;
   margin-bottom: 1rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .card-footer {
-  margin-top: auto;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
+.card-footer .address {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.card-footer .address::before { content: '📍'; font-size: 0.85rem; }
 
-.address {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-}
-
-.loader {
-  text-align: center;
-  padding: 4rem;
-  font-size: 1.2rem;
-  color: var(--primary);
-  font-weight: 600;
-}
+@keyframes scaleUp { from { opacity:0; transform: scale(0.92); } to { opacity:1; transform: scale(1); } }
+.animate-scale-up { animation: scaleUp 0.4s ease-out forwards; }

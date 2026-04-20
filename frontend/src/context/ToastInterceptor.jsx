@@ -7,14 +7,13 @@ const ToastInterceptor = ({ children }) => {
 
   useEffect(() => {
     const interceptor = api.interceptors.response.use(
-      (response) => response,
-      (error) => {
-        const message = error.response?.data?.message || 'Something went wrong';
+      response => response,
+      error => {
+        const message = error.response?.data?.message || 'Something went wrong. Please try again.';
         addToast(message, 'error');
         return Promise.reject(error);
       }
     );
-
     return () => api.interceptors.response.eject(interceptor);
   }, [addToast]);
 
