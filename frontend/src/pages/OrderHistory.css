@@ -1,0 +1,73 @@
+.orders-page {
+  padding: 2rem 0;
+}
+
+.orders-page h1 { margin-bottom: 2.5rem; }
+.orders-page h1 span { color: var(--primary); }
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 2rem;
+}
+
+.order-card {
+  padding: 1.5rem;
+  border-left: 5px solid var(--primary);
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.order-id {
+  display: block;
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+
+.order-date {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.order-items {
+  margin-bottom: 1.5rem;
+}
+
+.order-item-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.order-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.payment-status { font-size: 0.85rem; }
+.payment-status span { font-weight: 700; }
+.payment-status span.paid { color: #15803d; }
+.payment-status span.unpaid { color: #b91c1c; }
+
+.total-price strong { font-size: 1.25rem; color: var(--text); }
+
+.empty-orders {
+  padding: 3rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+@media (max-width: 600px) {
+  .orders-grid { grid-template-columns: 1fr; }
+}
