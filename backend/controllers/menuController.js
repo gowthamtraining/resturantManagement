@@ -1,10 +1,13 @@
 const Menu = require('../models/Menu');
+const Restaurant = require('../models/Restaurant');
 
-// @desc    Fetch all menu items
+// @desc    Fetch all menu items or menu items by restaurant
 // @route   GET /api/menu
 // @access  Public
 const getMenuItems = async (req, res) => {
-  const menuItems = await Menu.find({});
+  const { restaurantId } = req.query;
+  const query = restaurantId ? { restaurant: restaurantId } : {};
+  const menuItems = await Menu.find(query);
   res.json(menuItems);
 };
 
@@ -26,15 +29,38 @@ const getMenuItemById = async (req, res) => {
 // @route   POST /api/menu
 // @access  Private/Admin/Staff
 const createMenuItem = async (req, res) => {
-  const { name, price, description, image, category } = req.body;
+  const { name, price, description, image, category, countInStock, restaurantId } = req.body;
+
+  let finalRestaurantId;
+
+  if (req.user.role === 'admin' && restaurantId) {
+    finalRestaurantId = restaurantId;
+  } else if (restaurantId) {
+    // Verify staff owns this specific restaurant
+    const restaurant = await Restaurant.findOne({ _id: restaurantId, user: req.user._id });
+    if (!restaurant) {
+      res.status(403);
+      throw new Error('Not authorized to add items to this restaurant');
+    }
+    finalRestaurantId = restaurant._id;
+  } else {
+    // Fallback: Find the first restaurant owned by this user
+    const restaurant = await Restaurant.findOne({ user: req.user._id });
+    if (!restaurant) {
+      res.status(404);
+      throw new Error('No restaurant found for this user. Please create one first.');
+    }
+    finalRestaurantId = restaurant._id;
+  }
 
   const menuItem = new Menu({
+    restaurant: finalRestaurantId,
     name: name || 'Sample name',
     price: price || 0,
-    user: req.user._id,
     image: image || '/images/sample.jpg',
     category: category || 'Sample category',
     description: description || 'Sample description',
+    countInStock: countInStock || 0,
   });
 
   const createdMenuItem = await menuItem.save();

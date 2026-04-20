@@ -13,24 +13,70 @@ import Inventory from './pages/Inventory';
 import AdminOrders from './pages/AdminOrders';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { ToastProvider } from './context/ToastContext';
+import ToastInterceptor from './context/ToastInterceptor';
+import './context/Toast.css';
+
+import RestaurantList from './pages/RestaurantList';
+import RestaurantPortal from './pages/RestaurantPortal';
 
 function App() {
   return (
     <Router>
-      <AuthProvider>
-        <CartProvider>
-          <Layout>
+      <ToastProvider>
+        <ToastInterceptor>
+          <AuthProvider>
+            <CartProvider>
+              <Layout>
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/cart" element={<Cart />} />
+              <Route
+                path="/restaurants"
+                element={
+                  <ProtectedRoute>
+                    <RestaurantList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/restaurant/:id"
+                element={
+                  <ProtectedRoute>
+                    <Menu />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/menu"
+                element={
+                  <ProtectedRoute>
+                    <Menu />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <ProtectedRoute>
+                    <Cart />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/orders"
                 element={
                   <ProtectedRoute>
                     <OrderHistory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/restaurant-portal"
+                element={
+                  <ProtectedRoute>
+                    <RestaurantPortal />
                   </ProtectedRoute>
                 }
               />
@@ -62,6 +108,8 @@ function App() {
           </Layout>
         </CartProvider>
       </AuthProvider>
+      </ToastInterceptor>
+      </ToastProvider>
     </Router>
   );
 }

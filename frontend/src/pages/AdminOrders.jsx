@@ -64,7 +64,7 @@ const AdminOrders = () => {
                 <tr key={order._id}>
                   <td>#{order._id.substring(19)}</td>
                   <td>
-                    <strong>{order.user?.name}</strong><br/>
+                    <strong>{order.user?.name}</strong><br />
                     <small>{order.user?.email}</small>
                   </td>
                   <td>{order.orderItems.length} items</td>
@@ -75,8 +75,8 @@ const AdminOrders = () => {
                     </span>
                   </td>
                   <td>
-                    <select 
-                      value={order.status} 
+                    <select
+                      value={order.status}
                       onChange={(e) => handleStatusChange(order._id, e.target.value)}
                       className={`status-select status-${order.status}`}
                     >
@@ -106,10 +106,10 @@ const AdminOrders = () => {
               <h2>INVOICE</h2>
               <button className="close-btn" onClick={() => setShowBill(false)}>×</button>
             </div>
-            
+
             <div className="bill-content" id="printable-bill">
               <div className="restaurant-info">
-                <h3>Antigravity Kitchen</h3>
+                <h3>Royal Kitchen</h3>
                 <p>123 Galaxy Way, Suite 42</p>
                 <p>Tel: +1 (555) 000-1111</p>
               </div>

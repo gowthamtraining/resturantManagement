@@ -4,6 +4,7 @@ import './Inventory.css';
 
 const Inventory = () => {
   const [menuItems, setMenuItems] = useState([]);
+  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editingItem, setEditingItem] = useState(null);
   const [formData, setFormData] = useState({
@@ -12,22 +13,27 @@ const Inventory = () => {
     description: '',
     category: '',
     countInStock: 0,
-    isAvailable: true
+    isAvailable: true,
+    restaurantId: ''
   });
 
-  const fetchItems = async () => {
+  const fetchInitialData = async () => {
     try {
-      const { data } = await api.get('/menu');
-      setMenuItems(data);
+      const [menuRes, restRes] = await Promise.all([
+        api.get('/menu'),
+        api.get('/restaurants')
+      ]);
+      setMenuItems(menuRes.data);
+      setRestaurants(restRes.data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching menu items:', error);
+      console.error('Error fetching data:', error);
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchItems();
+    fetchInitialData();
   }, []);
 
   const handleEdit = (item) => {
@@ -38,7 +44,8 @@ const Inventory = () => {
       description: item.description,
       category: item.category,
       countInStock: item.countInStock,
-      isAvailable: item.isAvailable
+      isAvailable: item.isAvailable,
+      restaurantId: item.restaurant
     });
   };
 
@@ -51,7 +58,8 @@ const Inventory = () => {
         await api.post('/menu', formData);
       }
       setEditingItem(null);
-      fetchItems();
+      setFormData({ name: '', price: 0, description: '', category: '', countInStock: 0, isAvailable: true, restaurantId: '' });
+      fetchInitialData();
     } catch (error) {
       console.error('Error saving menu item:', error);
     }
@@ -84,6 +92,7 @@ const Inventory = () => {
               <thead>
                 <tr>
                   <th>Name</th>
+                  <th>Restaurant</th>
                   <th>Category</th>
                   <th>Price</th>
                   <th>Stock</th>
@@ -95,6 +104,9 @@ const Inventory = () => {
                 {menuItems.map(item => (
                   <tr key={item._id}>
                     <td>{item.name}</td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      {restaurants.find(r => r._id === item.restaurant)?.name || 'Unknown'}
+                    </td>
                     <td>{item.category}</td>
                     <td>${item.price.toFixed(2)}</td>
                     <td className={item.countInStock < 10 ? 'low-stock-text' : ''}>
@@ -115,6 +127,19 @@ const Inventory = () => {
         <section className="item-form card">
           <h2>{editingItem ? 'Edit Item' : 'Add New Item'}</h2>
           <form onSubmit={handleUpdate}>
+            <div className="form-group">
+              <label>Restaurant</label>
+              <select 
+                required 
+                value={formData.restaurantId} 
+                onChange={(e) => setFormData({...formData, restaurantId: e.target.value})}
+              >
+                <option value="">Select Restaurant...</option>
+                {restaurants.map(r => (
+                  <option key={r._id} value={r._id}>{r.name}</option>
+                ))}
+              </select>
+            </div>
             <div className="form-group">
               <label>Item Name</label>
               <input 

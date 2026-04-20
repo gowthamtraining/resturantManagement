@@ -37,6 +37,7 @@ const OrderHistory = () => {
               <div className="order-header">
                 <div>
                   <span className="order-id">Order #{order._id.substring(19)}</span>
+                  <div className="order-restaurant">{order.restaurant?.name || 'Restaurant'}</div>
                   <span className="order-date">{new Date(order.createdAt).toLocaleDateString()}</span>
                 </div>
                 <span className={`badge status-${order.status}`}>{order.status}</span>

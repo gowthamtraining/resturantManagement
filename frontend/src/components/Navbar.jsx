@@ -21,20 +21,34 @@ const Navbar = () => {
       <div className="container nav-content">
         <Link to="/" className="logo">
           <span className="logo-icon">🚀</span>
-          <span className="logo-text">Antigravity <span>Kitchen</span></span>
+          <span className="logo-text">Royal <span>Kitchen</span></span>
         </Link>
 
         <div className="nav-links">
-          <Link to="/menu">Menu</Link>
+          <Link to="/restaurants">Restaurants</Link>
           {user ? (
             <>
-              <Link to="/orders">My Orders</Link>
-              {user.role === 'admin' || user.role === 'staff' ? (
-                <Link to="/admin" className="admin-link">Dashboard</Link>
-              ) : null}
-              <Link to="/cart" className="cart-link">
-                🛒 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
-              </Link>
+              {user.role === 'customer' && (
+                <>
+                  <Link to="/menu">All Items</Link>
+                  <Link to="/orders">My Orders</Link>
+                  <Link to="/cart" className="cart-link">
+                    🛒 {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+                  </Link>
+                </>
+              )}
+              {user.role === 'staff' && (
+                <>
+                  <Link to="/restaurant-portal" className="nav-accent">Manage Restaurant</Link>
+                  <Link to="/restaurant-portal?add=true" className="nav-accent" style={{ background: 'var(--accent)', color: 'white !important' }}>+ Add Item</Link>
+                </>
+              )}
+              {user.role === 'admin' && (
+                <>
+                  <Link to="/admin" className="nav-accent">System Admin</Link>
+                  <Link to="/admin/inventory" className="nav-accent" style={{ background: 'var(--accent)', color: 'white !important' }}>+ Add Menu Item</Link>
+                </>
+              )}
               <div className="user-menu">
                 <span className="user-name">Hi, {user.name.split(' ')[0]}</span>
                 <button onClick={handleLogout} className="btn-logout">Logout</button>
@@ -42,6 +56,7 @@ const Navbar = () => {
             </>
           ) : (
             <>
+              <Link to="/menu">All Items</Link>
               <Link to="/login">Login</Link>
               <Link to="/register" className="btn btn-primary btn-sm">Sign Up</Link>
             </>

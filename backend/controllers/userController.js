@@ -36,6 +36,15 @@ const registerUser = async (req, res) => {
     throw new Error('User already exists');
   }
 
+  // Check if admin already exists
+  if (role === 'admin') {
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (adminExists) {
+      res.status(400);
+      throw new Error('Admin already exists. Only one admin allowed per system.');
+    }
+  }
+
   const user = await User.create({
     name,
     email,

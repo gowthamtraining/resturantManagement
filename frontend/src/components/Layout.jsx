@@ -10,7 +10,7 @@ const Layout = ({ children }) => {
       </main>
       <footer className="footer">
         <div className="container">
-          <p>&copy; 2026 Antigravity Kitchen. All rights reserved.</p>
+          <p>&copy; 2026 Royal Kitchen. All rights reserved.</p>
         </div>
       </footer>
     </>

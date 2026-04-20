@@ -5,7 +5,7 @@ import api from '../services/api';
 import './Cart.css';
 
 const Cart = () => {
-  const { cartItems, removeFromCart, clearCart } = useContext(CartContext);
+  const { cartItems, removeFromCart, clearCart, restaurantId } = useContext(CartContext);
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Credit Card');
@@ -32,7 +32,7 @@ const Cart = () => {
           qty: item.qty,
           image: item.image,
           price: item.price,
-          menuItem: item._id,
+          menuItem: item.menuItem,
         })),
         shippingAddress: { address, city },
         paymentMethod,
@@ -40,6 +40,7 @@ const Cart = () => {
         taxPrice,
         shippingPrice,
         totalPrice,
+        restaurantId,
       };
 
       const { data } = await api.post('/orders', orderData);

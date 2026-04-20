@@ -13,16 +13,17 @@ const addOrderItems = async (req, res) => {
     taxPrice,
     shippingPrice,
     totalPrice,
+    restaurantId, // New field from frontend
   } = req.body;
 
   if (orderItems && orderItems.length === 0) {
     res.status(400);
     throw new Error('No order items');
-    return;
   } else {
     const order = new Order({
       orderItems,
       user: req.user._id,
+      restaurant: restaurantId,
       shippingAddress,
       paymentMethod,
       itemsPrice,
@@ -33,12 +34,23 @@ const addOrderItems = async (req, res) => {
 
     const createdOrder = await order.save();
 
-    // Update inventory
+    // Update inventory atomically to handle concurrency
     for (const item of orderItems) {
-      const menuItem = await Menu.findById(item.menuItem);
+      const menuItem = await Menu.findOneAndUpdate(
+        { _id: item.menuItem, countInStock: { $gte: item.qty } },
+        { $inc: { countInStock: -item.qty } },
+        { new: true }
+      );
+
       if (menuItem) {
-        menuItem.countInStock -= item.qty;
-        await menuItem.save();
+        // Emit socket event for quantity change
+        req.io.emit('quantityUpdate', {
+          menuItemId: item.menuItem,
+          countInStock: menuItem.countInStock,
+        });
+      } else {
+        // Handle case where stock might have been depleted by a concurrent order
+        console.error(`Failed to update stock for item ${item.menuItem} - Insufficient stock`);
       }
     }
 
@@ -53,7 +65,7 @@ const getOrderById = async (req, res) => {
   const order = await Order.findById(req.params.id).populate(
     'user',
     'name email'
-  );
+  ).populate('restaurant', 'name');
 
   if (order) {
     res.json(order);
@@ -129,9 +141,9 @@ const updateOrderStatus = async (req, res) => {
 // @route   GET /api/orders/myorders
 // @access  Private
 const getMyOrders = async (req, res) => {
-  // Performance optimization: use .lean() for faster query response when modifications aren't needed
-  // and select only necessary fields if possible.
-  const orders = await Order.find({ user: req.user._id }).sort({ createdAt: -1 }).lean();
+  const orders = await Order.find({ user: req.user._id })
+    .populate('restaurant', 'name')
+    .sort({ createdAt: -1 });
   res.json(orders);
 };
 
@@ -139,7 +151,20 @@ const getMyOrders = async (req, res) => {
 // @route   GET /api/orders
 // @access  Private/Admin/Staff
 const getOrders = async (req, res) => {
-  const orders = await Order.find({}).populate('user', 'id name').sort({ createdAt: -1 }).lean();
+  const orders = await Order.find({})
+    .populate('user', 'id name')
+    .populate('restaurant', 'name')
+    .sort({ createdAt: -1 });
+  res.json(orders);
+};
+
+// @desc    Get orders for a specific restaurant
+// @route   GET /api/orders/restaurant/:restaurantId
+// @access  Private/Staff/Admin
+const getRestaurantOrders = async (req, res) => {
+  const orders = await Order.find({ restaurant: req.params.restaurantId })
+    .populate('user', 'name email')
+    .sort({ createdAt: -1 });
   res.json(orders);
 };
 
@@ -151,4 +176,5 @@ module.exports = {
   updateOrderStatus,
   getMyOrders,
   getOrders,
+  getRestaurantOrders,
 };
